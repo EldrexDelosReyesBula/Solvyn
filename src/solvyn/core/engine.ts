@@ -22,7 +22,7 @@ export class SolvynEngine {
     if (config.plugins) {
       this.plugins = config.plugins;
     }
-    this.history = new HistoryManager(this.config.historyStorage);
+    this.history = new HistoryManager(this.config.historyStorage, this.config.maxHistoryItems);
   }
 
   use(plugin: SolvynPlugin) {

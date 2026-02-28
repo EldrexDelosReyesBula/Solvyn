@@ -11,6 +11,9 @@ interface SolvynContextValue {
   result: SolvynResult | null;
   status: SolvynStatus;
   history: SolvynHistoryItem[];
+  clearHistory: () => Promise<void>;
+  exportHistory: () => string;
+  importHistory: (json: string) => Promise<void>;
 }
 
 const SolvynContext = createContext<SolvynContextValue | null>(null);
@@ -40,12 +43,29 @@ export const SolvynProvider: React.FC<{ config?: SolvynConfig; children: ReactNo
     return res;
   }, []);
 
+  const clearHistory = useCallback(async () => {
+    await engineRef.current.history.clear();
+    setHistory(engineRef.current.history.get());
+  }, []);
+
+  const exportHistory = useCallback(() => {
+    return engineRef.current.history.export();
+  }, []);
+
+  const importHistory = useCallback(async (json: string) => {
+    await engineRef.current.history.import(json);
+    setHistory(engineRef.current.history.get());
+  }, []);
+
   const value = {
     engine: engineRef.current,
     solve,
     result,
     status,
-    history
+    history,
+    clearHistory,
+    exportHistory,
+    importHistory
   };
 
   return (
@@ -84,6 +104,23 @@ export const useSolvyn = (localConfig?: SolvynConfig) => {
     return res;
   }, [localEngine]);
 
+  const localClearHistory = useCallback(async () => {
+    if (!localEngine) return;
+    await localEngine.history.clear();
+    setHistory(localEngine.history.get());
+  }, [localEngine]);
+
+  const localExportHistory = useCallback(() => {
+    if (!localEngine) return "[]";
+    return localEngine.history.export();
+  }, [localEngine]);
+
+  const localImportHistory = useCallback(async (json: string) => {
+    if (!localEngine) return;
+    await localEngine.history.import(json);
+    setHistory(localEngine.history.get());
+  }, [localEngine]);
+
   if (localConfig && localEngine) {
     return {
       engine: localEngine,
@@ -91,6 +128,9 @@ export const useSolvyn = (localConfig?: SolvynConfig) => {
       result,
       status,
       history,
+      clearHistory: localClearHistory,
+      exportHistory: localExportHistory,
+      importHistory: localImportHistory,
       events: localEngine // Expose engine directly for events like engine.on('...')
     };
   }

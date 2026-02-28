@@ -92,10 +92,11 @@ Solvyn is a headless computation orchestration engine for modern applications. I
 - **Auto-Compute on \`=\`**: Automatically evaluates expressions when the user types \`=\` and appends the result.
 - **Auto-Tab**: Inserts a tab character or moves focus to the next input after computation.
 - **Headless Core**: Pure computation engine with no UI constraints.
-- **History & Storage**: Tracks input and result history with configurable storage adapters (Memory, LocalStorage, IndexedDB).
+- **History & Storage**: Tracks input and result history with configurable storage adapters (Memory, LocalStorage, IndexedDB, Cloud).
 - **Intelligent Pipeline**: Validator → Local Engine Attempt → AI Router → Post Processor.
 - **Plugin System**: Extend Solvyn with domain-specific solvers (e.g., unit converters, finance calculators).
 - **Strict Security**: No telemetry, no hidden network calls, deterministic local execution by default.
+- **Structured Error Handling**: Developer-friendly error objects with suggestions.
 
 ## Installation
 
@@ -125,9 +126,28 @@ export default function App() {
       <SolvynInput 
         className="my-input-class"
         placeholder="Type 1+2="
+        resultFormat="inline" // "inline" | "tooltip" | "modal"
       />
     </SolvynProvider>
   );
+}
+\`\`\`
+
+## React Hook Example
+
+You can also use the \`useSolvyn\` hook directly. It can inherit from the \`SolvynProvider\` or create a local instance if you pass a config.
+
+\`\`\`tsx
+import { useSolvyn } from "@solvyn/react";
+
+function MyComponent() {
+  const { solve, result, history, events } = useSolvyn({ 
+    autoCompute: true,
+    historyEnabled: true,
+    historyStorage: "indexedDB"
+  });
+
+  // ...
 }
 \`\`\`
 
@@ -146,8 +166,50 @@ Solvyn v1.4 introduces flexible storage adapters for history persistence.
 \`\`\`tsx
 const config = {
   historyEnabled: true,
-  historyStorage: "localStorage" // or "memory", or a custom adapter
+  historyStorage: "localStorage" // "memory", "localStorage", "indexedDB", "cloud", or a custom adapter instance
 };
+\`\`\`
+
+### AI Integration (Optional)
+
+Multi-provider support: OpenAI, Claude, Gemini, Custom API. AI is **developer-controlled**; no auto-requests.
+
+\`\`\`ts
+import { createOpenAIAdapter } from '@solvyn/adapters';
+
+const config = {
+  ai: createOpenAIAdapter({
+    apiKey: process.env.OPENAI_API_KEY,
+    systemInstruction: "Solve math only"
+  }),
+  escalation: "auto" // "manual" | "auto" | "never"
+};
+\`\`\`
+
+### Plugin System
+
+Extensible solvers or computation modules.
+
+\`\`\`ts
+const config = {
+  plugins: [{
+    name: "finance-calculator",
+    match: input => input.includes("interest"),
+    solve: input => ({ value: "..." })
+  }]
+};
+\`\`\`
+
+### Error Handling
+
+Structured errors provide clear feedback.
+
+\`\`\`ts
+{
+  code: "INVALID_EXPRESSION",
+  message: "Could not parse expression. Check parentheses.",
+  suggestion: "Use standard math operators +, -, *, / or check your syntax."
+}
 \`\`\`
 
 ## Security Model
@@ -156,6 +218,14 @@ const config = {
 - **Sandboxed Execution**: Prevents infinite loops and dangerous expressions.
 - **Input Sanitization**: Built-in limits on input length and basic XSS prevention.
 - **Explicit AI**: AI is never called unless explicitly configured and injected by the developer.
+
+## Contribution Guide
+
+1. Fork the repository.
+2. Create a feature branch (\`git checkout -b feature/my-feature\`).
+3. Commit your changes (\`git commit -am 'Add my feature'\`).
+4. Push to the branch (\`git push origin feature/my-feature\`).
+5. Open a Pull Request.
 `;
 
 export default function App() {
@@ -184,7 +254,7 @@ export default function App() {
             >
               <BookOpen className="w-4 h-4" /> Docs
             </button>
-            <a href="https://github.com" target="_blank" rel="noreferrer" className="text-zinc-900 dark:text-zinc-100 ml-4">
+            <a href="https://github.com/EldrexDelosReyesBula/Solvyn" target="_blank" rel="noreferrer" className="text-zinc-900 dark:text-zinc-100 ml-4">
               <Github className="w-5 h-5" />
             </a>
           </div>

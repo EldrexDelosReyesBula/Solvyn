@@ -127,8 +127,10 @@ export class CloudStorageAdapter implements StorageAdapter {
 export class HistoryManager {
   private items: SolvynHistoryItem[] = [];
   private adapter: StorageAdapter;
+  private maxItems: number;
 
-  constructor(adapter?: StorageAdapter | "memory" | "localStorage" | "indexedDB" | "cloud" | any) {
+  constructor(adapter?: StorageAdapter | "memory" | "localStorage" | "indexedDB" | "cloud" | any, maxItems: number = 100) {
+    this.maxItems = maxItems;
     if (adapter === "localStorage") {
       this.adapter = new LocalStorageAdapter();
     } else if (adapter === "indexedDB") {
@@ -148,11 +150,19 @@ export class HistoryManager {
     const loaded = await this.adapter.load();
     if (loaded && loaded.length) {
       this.items = loaded;
+      this.enforceLimit();
+    }
+  }
+
+  private enforceLimit() {
+    if (this.items.length > this.maxItems) {
+      this.items = this.items.slice(this.items.length - this.maxItems);
     }
   }
 
   async add(item: SolvynHistoryItem) {
     this.items.push(item);
+    this.enforceLimit();
     await this.adapter.save(this.items);
   }
 
@@ -167,5 +177,18 @@ export class HistoryManager {
 
   export(): string {
     return JSON.stringify(this.items, null, 2);
+  }
+
+  async import(json: string) {
+    try {
+      const parsed = JSON.parse(json);
+      if (Array.isArray(parsed)) {
+        this.items = parsed;
+        this.enforceLimit();
+        await this.adapter.save(this.items);
+      }
+    } catch (e) {
+      console.error("Failed to import history", e);
+    }
   }
 }

@@ -123,6 +123,7 @@ export class SolvynEngine {
       const error: SolvynError = e.code ? e : {
         code: "INVALID_EXPRESSION",
         message: e.message || "Could not parse expression. Check parentheses.",
+        suggestion: "Use standard math operators +, -, *, / or check your syntax."
       };
       finalResult = {
         status: "error",

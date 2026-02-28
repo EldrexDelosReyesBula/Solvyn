@@ -48,4 +48,5 @@ export interface SolvynConfig {
   offlineOnly?: boolean;
   autoCompute?: boolean;
   insertTabAfterCompute?: boolean;
+  resultFormat?: "inline" | "tooltip" | "modal";
 }

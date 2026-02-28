@@ -93,15 +93,49 @@ export class IndexedDBAdapter implements StorageAdapter {
   }
 }
 
+export class CloudStorageAdapter implements StorageAdapter {
+  constructor(private saveUrl: string, private loadUrl: string, private headers: Record<string, string> = {}) {}
+
+  async save(items: SolvynHistoryItem[]) {
+    try {
+      await fetch(this.saveUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...this.headers },
+        body: JSON.stringify(items)
+      });
+    } catch (e) { console.error("CloudStorageAdapter save failed", e); }
+  }
+
+  async load(): Promise<SolvynHistoryItem[]> {
+    try {
+      const res = await fetch(this.loadUrl, { headers: this.headers });
+      if (res.ok) return await res.json();
+    } catch (e) { console.error("CloudStorageAdapter load failed", e); }
+    return [];
+  }
+
+  async clear() {
+    try {
+      await fetch(this.saveUrl, {
+        method: 'DELETE',
+        headers: this.headers
+      });
+    } catch (e) { console.error("CloudStorageAdapter clear failed", e); }
+  }
+}
+
 export class HistoryManager {
   private items: SolvynHistoryItem[] = [];
   private adapter: StorageAdapter;
 
-  constructor(adapter?: StorageAdapter | "memory" | "localStorage" | "indexedDB" | any) {
+  constructor(adapter?: StorageAdapter | "memory" | "localStorage" | "indexedDB" | "cloud" | any) {
     if (adapter === "localStorage") {
       this.adapter = new LocalStorageAdapter();
     } else if (adapter === "indexedDB") {
       this.adapter = new IndexedDBAdapter();
+    } else if (adapter === "cloud") {
+      // Dummy cloud adapter for demo purposes if string is passed
+      this.adapter = new CloudStorageAdapter('/api/history', '/api/history');
     } else if (typeof adapter === "object" && adapter !== null) {
       this.adapter = adapter;
     } else {

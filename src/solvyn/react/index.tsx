@@ -55,10 +55,52 @@ export const SolvynProvider: React.FC<{ config?: SolvynConfig; children: ReactNo
   );
 };
 
-export const useSolvyn = () => {
+export const useSolvyn = (localConfig?: SolvynConfig) => {
   const context = useContext(SolvynContext);
-  if (!context) {
-    throw new Error("useSolvyn must be used within a SolvynProvider");
+  
+  // If localConfig is provided, we create a local instance, bypassing context
+  const [localEngine] = useState(() => localConfig ? createSolvyn(localConfig) : null);
+  const [result, setResult] = useState<SolvynResult | null>(null);
+  const [status, setStatus] = useState<SolvynStatus>("idle");
+  const [history, setHistory] = useState<SolvynHistoryItem[]>([]);
+
+  useEffect(() => {
+    if (localEngine) {
+      const loadHistory = async () => {
+        await new Promise(resolve => setTimeout(resolve, 50));
+        setHistory(localEngine.history.get());
+      };
+      loadHistory();
+    }
+  }, [localEngine]);
+
+  const localSolve = useCallback(async (input: string) => {
+    if (!localEngine) return {} as SolvynResult;
+    setStatus("evaluating");
+    const res = await localEngine.solve(input);
+    setResult(res);
+    setStatus(res.status);
+    setHistory(localEngine.history.get());
+    return res;
+  }, [localEngine]);
+
+  if (localConfig && localEngine) {
+    return {
+      engine: localEngine,
+      solve: localSolve,
+      result,
+      status,
+      history,
+      events: localEngine // Expose engine directly for events like engine.on('...')
+    };
   }
-  return context;
+
+  if (!context) {
+    throw new Error("useSolvyn must be used within a SolvynProvider or provided with a local config");
+  }
+  
+  return {
+    ...context,
+    events: context.engine
+  };
 };

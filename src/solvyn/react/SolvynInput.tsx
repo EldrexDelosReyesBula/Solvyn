@@ -4,6 +4,7 @@ import { useSolvyn } from './index';
 export interface SolvynInputProps extends React.TextareaHTMLAttributes<HTMLTextAreaElement> {
   autoCompute?: boolean;
   insertTabAfterCompute?: boolean;
+  resultFormat?: "inline" | "tooltip" | "modal";
   onComputeSuccess?: (result: string) => void;
   onComputeError?: (error: any) => void;
 }
@@ -11,6 +12,7 @@ export interface SolvynInputProps extends React.TextareaHTMLAttributes<HTMLTextA
 export const SolvynInput = React.forwardRef<HTMLTextAreaElement, SolvynInputProps>(({
   autoCompute = true,
   insertTabAfterCompute = true,
+  resultFormat = "inline",
   onComputeSuccess,
   onComputeError,
   ...props
@@ -18,6 +20,7 @@ export const SolvynInput = React.forwardRef<HTMLTextAreaElement, SolvynInputProp
   const { solve } = useSolvyn();
   const internalRef = useRef<HTMLTextAreaElement>(null);
   const textareaRef = (ref as any) || internalRef;
+  const [tooltipResult, setTooltipResult] = React.useState<string | null>(null);
 
   const handleKeyDown = async (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === '=' && autoCompute) {
@@ -38,8 +41,14 @@ export const SolvynInput = React.forwardRef<HTMLTextAreaElement, SolvynInputProp
       const res = await solve(currentExpr);
       
       if (res.status === 'success' && res.value) {
-        const newVal = val + ` = (${res.value})`;
-        textareaRef.current!.value = newVal;
+        if (resultFormat === "inline") {
+          const newVal = val + ` = (${res.value})`;
+          textareaRef.current!.value = newVal;
+        } else {
+          textareaRef.current!.value = val + '=';
+          setTooltipResult(res.value);
+          setTimeout(() => setTooltipResult(null), 3000);
+        }
         
         if (insertTabAfterCompute) {
           // Move focus to next focusable element
@@ -66,7 +75,16 @@ export const SolvynInput = React.forwardRef<HTMLTextAreaElement, SolvynInputProp
     props.onKeyDown?.(e);
   };
 
-  return <textarea ref={textareaRef} onKeyDown={handleKeyDown} {...props} />;
+  return (
+    <div className="relative w-full">
+      <textarea ref={textareaRef} onKeyDown={handleKeyDown} {...props} />
+      {tooltipResult && resultFormat === "tooltip" && (
+        <div className="absolute top-full left-0 mt-2 px-3 py-1.5 bg-zinc-900 text-white text-xs rounded shadow-lg z-50">
+          Result: {tooltipResult}
+        </div>
+      )}
+    </div>
+  );
 });
 
 SolvynInput.displayName = 'SolvynInput';

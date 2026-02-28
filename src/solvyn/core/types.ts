@@ -41,6 +41,7 @@ export interface SolvynConfig {
   ai?: SolvynAIProvider | null;
   historyEnabled?: boolean;
   historyStorage?: "memory" | "localStorage" | "indexedDB" | any;
+  maxHistoryItems?: number;
   plugins?: SolvynPlugin[];
   timeout?: number;
   precision?: number;
